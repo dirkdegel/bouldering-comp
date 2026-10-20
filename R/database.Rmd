@@ -1,0 +1,41 @@
+---
+title: "Untitled"
+author: "Dirk"
+date: "2026-10-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(DBI)
+library(RSQLite)  # Example for SQLite - change as needed
+con <- dbConnect(RSQLite::SQLite(), "./../competition.db")  # Replace with your database file
+table_names <- dbListTables(con)
+data <- dbReadTable(con, "submissions")  # Replace with your table name
+```
+
+```{r}
+
+df <- data |>
+  mutate(
+    age_group = case_when(
+      age <= 18 ~ "18-",
+      between(age, 19, 40) ~ "19-40",
+      age > 40 ~ "40+"
+    )
+  ) |>
+  group_by(age_group, sex) |>
+  arrange(desc(total_score)) |>
+  mutate(rank = row_number()) |>
+  ungroup()
+
+
+
+ttt <- df |>
+  select(id, boulders_climbed)
+
+```
+

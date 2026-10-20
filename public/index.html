@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bouldering Comp Scorecard</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 16px;
+      background-color: #f8f9fa;
+      color: #212529;
+    }
+
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .nav-bar a { color: #0d6efd; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+
+    h1 { font-size: 1.5rem; margin: 0; }
+
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.95rem; }
+    
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #fff;
+    }
+
+    .row { display: flex; gap: 10px; }
+    .col { flex: 1; }
+
+    .boulder-list-container {
+      margin: 15px 0;
+      max-height: 420px;
+      overflow-y: auto;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 8px;
+    }
+
+    .boulder-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .boulder-item.active {
+      background-color: #e7f1ff;
+      border-color: #0d6efd;
+    }
+
+    .boulder-item input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: #0d6efd;
+      cursor: pointer;
+    }
+
+    .boulder-name { font-weight: 600; font-size: 1rem; }
+
+    button.submit-btn {
+      width: 100%;
+      padding: 14px;
+      background-color: #0d6efd;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button.submit-btn:active { background-color: #0b5ed7; }
+
+    .status-box {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+    }
+    .success { background-color: #d1e7dd; color: #0f5132; }
+    .error { background-color: #f8d7da; color: #842029; }
+  </style>
+</head>
+<body>
+
+  <div class="nav-bar">
+    <h1>🧗 Comp Scorecard</h1>
+    <div>
+      <a href="/leaderboard.html">Leaderboard</a> | 
+      <a href="/boulder.html">Boulders</a>
+    </div>
+  </div>
+
+  <form id="scoreForm">
+    <div class="form-group">
+      <label for="uniqueId">Climber ID / BIB Number (Optional):</label>
+      <input type="text" id="uniqueId" placeholder="e.g. BIB-101 (Auto-generated if empty)">
+    </div>
+
+    <div class="form-group">
+      <label for="name">Full Name *</label>
+      <input type="text" id="name" required placeholder="First and Last Name">
+    </div>
+
+    <div class="row">
+      <div class="col form-group">
+        <label for="age">Age *</label>
+        <input type="number" id="age" required min="5" max="99" placeholder="e.g. 25">
+      </div>
+      <div class="col form-group">
+        <label for="sex">Sex *</label>
+        <select id="sex" required>
+          <option value="">Select...</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other / Non-Binary</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Select Ticked Boulders (1 to 35):</label>
+      <div class="boulder-list-container" id="boulderList"></div>
+    </div>
+
+    <button type="submit" class="submit-btn">Submit Scorecard</button>
+  </form>
+
+  <div id="status"></div>
+
+  <script>
+    const TOTAL_BOULDERS = 35;
+    const boulderList = document.getElementById('boulderList');
+
+    // Generate 35 Boulder Items
+    for (let i = 1; i <= TOTAL_BOULDERS; i++) {
+      const item = document.createElement('div');
+      item.className = 'boulder-item';
+      item.id = `item-${i}`;
+      item.innerHTML = `
+        <span class="boulder-name">Boulder #${i}</span>
+        <input type="checkbox" value="${i}" id="b${i}" onchange="toggleItem(${i})">
+      `;
+      
+      item.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'INPUT') {
+          const checkbox = item.querySelector('input');
+          checkbox.checked = !checkbox.checked;
+          toggleItem(i);
+        }
+      });
+
+      boulderList.appendChild(item);
+    }
+
+    function toggleItem(num) {
+      const checkbox = document.getElementById(`b${num}`);
+      const item = document.getElementById(`item-${num}`);
+      if (checkbox.checked) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    }
+
+    document.getElementById('scoreForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const uniqueId = document.getElementById('uniqueId').value;
+      const name = document.getElementById('name').value;
+      const age = document.getElementById('age').value;
+      const sex = document.getElementById('sex').value;
+
+      const checkedBoxes = document.querySelectorAll('#boulderList input:checked');
+      const bouldersClimbed = Array.from(checkedBoxes).map(cb => cb.value);
+
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = 'status-box';
+      statusDiv.innerText = 'Submitting...';
+
+      try {
+        const response = await fetch('/api/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uniqueId, name, age, sex, bouldersClimbed })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          statusDiv.className = 'status-box success';
+          statusDiv.innerHTML = `✅ Saved! ID: <strong>${data.uniqueId}</strong> | Category Score: <strong>${data.totalScore} pts</strong>`;
+        } else {
+          statusDiv.className = 'status-box error';
+          statusDiv.innerText = `Error: ${data.error}`;
+        }
+      } catch (err) {
+        statusDiv.className = 'status-box error';
+        statusDiv.innerText = 'Network error. Please check connection.';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bouldering Comp - Live Leaderboard</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px;
+      background-color: #f8f9fa;
+      color: #212529;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    h1 { font-size: 1.6rem; margin: 0; }
+
+    .nav-link {
+      color: #0d6efd;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* Filter Bar Styles */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
+      margin-bottom: 20px;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #6c757d;
+      margin-bottom: 4px;
+    }
+
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      background: white;
+      font-size: 0.95rem;
+    }
+
+    /* Table Styles */
+    .table-card {
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    th {
+      background-color: #f1f3f5;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #495057;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) { background-color: #fafafa; }
+
+    .rank { font-weight: bold; width: 50px; text-align: center; }
+    .rank-1 { color: #d4af37; font-size: 1.1rem; } /* Gold */
+    .rank-2 { color: #a8a8a8; font-size: 1.1rem; } /* Silver */
+    .rank-3 { color: #b08d57; font-size: 1.1rem; } /* Bronze */
+
+    .score { font-weight: 700; color: #0d6efd; text-align: right; }
+    .tops { text-align: center; color: #6c757d; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      border-radius: 12px;
+      background-color: #e9ecef;
+      color: #495057;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🏆 Live Leaderboard</h1>
+    <a href="/index.html" class="nav-link">← Scorecard Form</a>
+  </div>
+
+  <!-- Filters for Sex and Age Category -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label for="sexFilter">Filter by Sex:</label>
+      <select id="sexFilter" onchange="applyFilters()">
+        <option value="ALL">All Sexes</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other / Non-Binary</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="categoryFilter">Filter by Age Category:</label>
+      <select id="categoryFilter" onchange="applyFilters()">
+        <option value="ALL">All Categories</option>
+        <option value="Youth (<18)">Youth (&lt;18)</option>
+        <option value="Open (18-39)">Open (18–39)</option>
+        <option value="Masters (40+)">Masters (40+)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Leaderboard Data Table -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align: center;">Rank</th>
+          <th>Climber</th>
+          <th>ID</th>
+          <th>Category / Sex</th>
+          <th style="text-align: center;">Tops</th>
+          <th style="text-align: right;">Points</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboardBody">
+        <tr>
+          <td colspan="6" class="empty-state">Loading rankings...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let allData = [];
+
+    // Fetch leaderboard data from server
+    async function fetchLeaderboard() {
+      try {
+        const response = await fetch('/api/leaderboard');
+        allData = await response.json();
+        applyFilters();
+      } catch (err) {
+        document.getElementById('leaderboardBody').innerHTML = `
+          <tr><td colspan="6" class="empty-state" style="color: red;">Failed to load leaderboard.</td></tr>
+        `;
+      }
+    }
+
+    // Filter and render table dynamically
+    function applyFilters() {
+      const selectedSex = document.getElementById('sexFilter').value;
+      const selectedCategory = document.getElementById('categoryFilter').value;
+
+      const filtered = allData.filter(climber => {
+        const matchesSex = selectedSex === 'ALL' || climber.sex === selectedSex;
+        const matchesCategory = selectedCategory === 'ALL' || climber.category === selectedCategory;
+        return matchesSex && matchesCategory;
+      });
+
+      renderTable(filtered);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById('leaderboardBody');
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No participants found matching the filters.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map((climber, index) => {
+        const rank = index + 1;
+        let rankClass = '';
+        if (rank === 1) rankClass = 'rank-1';
+        else if (rank === 2) rankClass = 'rank-2';
+        else if (rank === 3) rankClass = 'rank-3';
+
+        return `
+          <tr>
+            <td class="rank ${rankClass}">#${rank}</td>
+            <td><strong>${escapeHtml(climber.name)}</strong></td>
+            <td><code>${escapeHtml(climber.uniqueId)}</code></td>
+            <td>
+              <span class="badge">${climber.category}</span>
+              <span class="badge">${climber.sex}</span>
+            </td>
+            <td class="tops">${climber.totalTops} / 30</td>
+            <td class="score">${climber.totalScore.toFixed(1)} pts</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[m]);
+    }
+
+    // Auto-refresh leaderboard every 10 seconds for real-time updates
+    fetchLeaderboard();
+    setInterval(fetchLeaderboard, 10000);
+  </script>
+</body>
+</html>
